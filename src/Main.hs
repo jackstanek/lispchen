@@ -34,7 +34,7 @@ main =
         Just line -> do
           outputStrLn . ("=> " ++) . reprSexp . topLevelEval $ testSexp
           loop
-            where topLevelEval = evalSexp (Map.singleton "foo" (IntVal 420))
+            where topLevelEval = evalSexp Map.empty
 
 evalSexp :: Env -> Sexp -> Sexp
 evalSexp env (Value atom) =
@@ -45,7 +45,6 @@ evalSexp env (Value atom) =
            otherwise -> atom)
 evalSexp env (Cons left right) =
   Cons left right
-
 
 -- Get representation of an atom.
 reprAtom :: Atom -> String
