@@ -14,8 +14,8 @@ data Atom = IntVal Integer
 
 data Sexp = Value Atom | Cons Sexp Sexp
 
-testSexp = (Cons (Value (SymbolVal "yolo"))
-             (Cons (Value (IntVal 4)) (Value (IntVal 20))))
+testSexp = (Value (Quoted (Cons (Value (SymbolVal "yolo"))
+             (Cons (Value (IntVal 4)) (Value (IntVal 20))))))
 
 
 main :: IO ()
@@ -37,10 +37,9 @@ evalSexp (Value a) = Value a
 evalSexp (Cons left right) =
   Cons left right
 
-innerTerms :: Sexp -> String
-reprAtom :: Atom -> String
 
 -- Get representation of an atom.
+reprAtom :: Atom -> String
 reprAtom atom =
   case atom of
     IntVal i -> show i
@@ -53,6 +52,7 @@ reprAtom atom =
                   otherwise -> "'" ++ reprSexp s
 
 -- Get a representation of the contents of a cons.
+innerTerms :: Sexp -> String
 innerTerms (Value v) = reprAtom v
 innerTerms (Cons left right) = reprSexp left ++ " " ++ innerTerms right
 
