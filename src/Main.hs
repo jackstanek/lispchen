@@ -2,6 +2,7 @@
 
 import System.Console.Haskeline as HLine
 
+import Ast
 import Parser
 import Eval
 

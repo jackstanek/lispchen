@@ -1,8 +1,9 @@
 -- Copyright 2019, Jack Stanek. All rights reserved.
 
+
 module Eval (evalSexp) where
 
-import Parser
+import Ast
 
 evalSexp :: Sexp -> Sexp
 evalSexp (Value a) = Value a
