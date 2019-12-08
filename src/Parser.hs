@@ -60,14 +60,16 @@ boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
         f "#f" = BoolVal False
         f _ = error "invalid boolean literal"
 
-symbolP = lexeme $ SymbolVal <$> some letterP
+symbolP = lexeme $ (SymbolVal . Symbol) <$> some letterP
 
 numberP = lexeme $ IntVal . read <$> (some $ oneOfP ['0'..'9'])
 
 atomP = nilP <|> boolP <|> symbolP <|> numberP <|> quotedP
 
 consP :: SexpParser
-consP = (lexeme $ charP '(') *> (fmap collect $ many $ sexpP) <* (lexeme $ charP ')')
+consP = (lexeme $ charP '(') *>
+        (fmap collect $ many $ sexpP) <*
+        (lexeme $ charP ')')
   where collect [] = Nil
         collect (x:xs) = Cons x $ collect xs
 

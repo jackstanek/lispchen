@@ -2,9 +2,20 @@
 
 import System.Console.Haskeline as HLine
 
+import qualified Data.Map.Lazy as Map (empty)
+
 import Ast
 import Parser
 import Eval
+
+process :: String -> String
+process input =
+  let result = do
+        parseResult <- parseSexp input
+        evalSexp Map.empty parseResult
+  in case result of
+       Just sexp -> show result
+       Nothing -> "parse error"
 
 main :: IO ()
 main =
@@ -17,8 +28,5 @@ main =
         Nothing -> return ()
         Just ":quit" -> return ()
         Just line -> do
-          let result = case parseSexp line of
-                         Just sexp -> reprSexp $ evalSexp sexp
-                         Nothing -> "parse error" in
-            HLine.outputStrLn result
+          HLine.outputStrLn $ process line
           loop
