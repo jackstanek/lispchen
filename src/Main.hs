@@ -17,5 +17,8 @@ main =
         Nothing -> return ()
         Just ":quit" -> return ()
         Just line -> do
-          HLine.outputStrLn . ("=> " ++) . reprSexp $ testSexp
+          let result = case parseSexp line of
+                         Just sexp -> reprSexp $ evalSexp sexp
+                         Nothing -> "parse error" in
+            HLine.outputStrLn result
           loop

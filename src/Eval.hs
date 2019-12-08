@@ -6,6 +6,4 @@ module Eval (evalSexp) where
 import Ast
 
 evalSexp :: Sexp -> Sexp
-evalSexp (Value a) = Value a
-evalSexp (Cons left right) =
-  Cons left right
+evalSexp s = s
