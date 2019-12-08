@@ -5,7 +5,7 @@ module Ast (Sexp(IntVal, StringVal, SymbolVal, BoolVal, Nil, Quoted, Cons),
 import Data.Char (toLower)
 
 newtype Symbol = Symbol String
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data Sexp = IntVal Integer
           | StringVal String

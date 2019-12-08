@@ -9,4 +9,5 @@ import Ast
 
 evalSexp :: Map.Map Symbol Sexp -> Sexp -> Maybe Sexp
 evalSexp env (Cons left right) = Just $ Cons left right
-evalSexp env (atom) = Just atom
+evalSexp env (SymbolVal s) = Map.lookup s env
+evalSexp _ sexp = Just sexp
