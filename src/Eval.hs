@@ -20,20 +20,23 @@ truthy s = case s of
   Nil -> False
   _ -> True
 
+argsMatch :: [Sexp] -> Int -> Bool
+argsMatch args len = len == length args
+
 evalFnCall :: Env -> Symbol -> [Sexp] -> Maybe Sexp
 evalFnCall env fn args =
-  Nothing
-  -- case fn of
-    -- Symbol "if" ->
-      -- if length args /= 3
-      -- then Nothing
-      -- else
-        -- do
-          -- condition' <- evalSexp env condition
-          -- if truthy condition'
-            -- then evalSexp env then'
-            -- else evalSexp env else'
-    -- _ -> Nothing
+  case fn of
+    Symbol "if" ->
+      if argsMatch args 3 then
+        let [cond, then', else'] = args
+            ev = evalSexp env
+        in do
+          cond' <- ev cond
+          if truthy cond' then
+            ev then' else ev else'
+      else Nothing
+
+    _ -> Nothing
 
 evalSexp :: Env -> Sexp -> Maybe Sexp
 evalSexp env sexp =
