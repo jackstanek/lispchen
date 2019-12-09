@@ -14,6 +14,9 @@ data Sexp = IntVal Integer
           | BoolVal Bool
           | Quoted Sexp
           | Cons [Sexp]
+          | If Sexp Sexp Sexp
+          | Let [(Symbol, Sexp)] Sexp
+          | Lambda [Symbol] Sexp
           | Nil
 
   deriving (Show, Eq)
@@ -22,10 +25,11 @@ symval = SymbolVal . Symbol
 
 testSexp = Cons [symval "foo", symval "bar", IntVal 420]
 
+concatSpaces = concat . intersperse " "
+
 -- Get a representation of a
 reprSexp :: Sexp -> String
 reprSexp (Cons contents) = "(" ++ (concatSpaces $ map reprSexp contents) ++ ")"
-  where concatSpaces = concat . intersperse " "
 
 reprSexp atom =
   case atom of
@@ -33,5 +37,8 @@ reprSexp atom =
     StringVal s -> "\"" ++ s ++ "\""
     SymbolVal (Symbol s) -> s
     BoolVal b -> map toLower $ show b
-    Nil -> "nil"
     Quoted s -> reprSexp s
+    Nil -> "nil"
+    If _ _ _ -> "#(if ...)"
+    Let _ _ -> "#(let ...)"
+    Lambda _ _ -> "#(lambda ...)"

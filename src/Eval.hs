@@ -5,6 +5,8 @@ module Eval (eval) where
 
 import qualified Data.Map.Lazy as Map
 
+import Data.Maybe
+
 import Ast
 
 type Env = Map.Map Symbol Sexp
@@ -28,15 +30,16 @@ evalFnCall env fn args =
   case fn of
     Symbol "if" ->
       if argsMatch args 3 then
-        let [cond, then', else'] = args
-            ev = evalSexp env
-        in do
-          cond' <- ev cond
-          if truthy cond' then
-            ev then' else ev else'
+        -- TODO: This seems unsafe.
+        let [cond, then', else'] = args in
+          do
+            cond' <- ev cond
+            if truthy cond' then
+              ev then' else ev else'
       else Nothing
 
     _ -> Nothing
+  where ev = evalSexp env
 
 evalSexp :: Env -> Sexp -> Maybe Sexp
 evalSexp env sexp =
