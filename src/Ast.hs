@@ -1,8 +1,9 @@
 module Ast (Sexp(IntVal, StringVal, SymbolVal, BoolVal, Nil, Quoted, Cons),
-            Symbol(Symbol),
+            Symbol(Symbol), symval,
             reprSexp, testSexp) where
 
 import Data.Char (toLower)
+import Data.List (intersperse)
 
 newtype Symbol = Symbol String
   deriving (Show, Eq, Ord)
@@ -12,27 +13,19 @@ data Sexp = IntVal Integer
           | SymbolVal Symbol
           | BoolVal Bool
           | Quoted Sexp
-          | Cons Sexp Sexp
+          | Cons [Sexp]
           | Nil
 
   deriving (Show, Eq)
 
-testSexp = (Cons (SymbolVal $ Symbol "yolo") (Cons (Cons (IntVal 420) (IntVal 69)) Nil))
+symval = SymbolVal . Symbol
 
--- Get a representation of the contents of a cons.
-innerTerms :: Sexp -> String
-innerTerms s =
-  case s of
-    Nil -> ""
-    (Cons left Nil) -> reprSexp left
-    (Cons left right) -> reprSexp left ++ " " ++ innerTerms right
-    _ -> reprSexp s
+testSexp = Cons [symval "foo", symval "bar", IntVal 420]
 
 -- Get a representation of a
 reprSexp :: Sexp -> String
-reprSexp (Cons left right) =
-  let sep = if right /= Nil then " " else "" in
-    "(" ++ reprSexp left ++ sep ++ innerTerms right ++ ")"
+reprSexp (Cons contents) = "(" ++ (concatSpaces $ map reprSexp contents) ++ ")"
+  where concatSpaces = concat . intersperse " "
 
 reprSexp atom =
   case atom of

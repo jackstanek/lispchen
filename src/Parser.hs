@@ -53,7 +53,7 @@ lexeme p = whitespaceP *> p
 whitespaceP :: Parser String
 whitespaceP = many $ oneOfP " \n\t"
 
-nilP = lexeme $ (\_ -> Nil) <$> stringP "nil"
+nilP = lexeme $ (\_ -> Nil) <$> (stringP "nil" <|> stringP "()")
 
 boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
   where f "#t" = BoolVal True
@@ -68,13 +68,11 @@ atomP = nilP <|> boolP <|> symbolP <|> numberP <|> quotedP
 
 consP :: SexpParser
 consP = (lexeme $ charP '(') *>
-        (fmap collect $ many $ sexpP) <*
+        (Cons <$> (many sexpP)) <*
         (lexeme $ charP ')')
-  where collect [] = Nil
-        collect (x:xs) = Cons x $ collect xs
 
 quotedP :: SexpParser
-quotedP = (charP '\'') *> sexpP
+quotedP = (charP '\'') *> (Quoted <$> sexpP)
 
 sexpP :: SexpParser
 sexpP = atomP <|> consP

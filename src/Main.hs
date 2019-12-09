@@ -10,12 +10,12 @@ import Eval
 
 process :: String -> String
 process input =
-  let result = do
-        parseResult <- parseSexp input
-        evalSexp Map.empty parseResult
-  in case result of
-       Just sexp -> show result
-       Nothing -> "parse error"
+  case parseSexp input of
+    Just sexp ->
+      case eval sexp of
+        Just result -> reprSexp result
+        Nothing -> "runtime error"
+    Nothing -> "parse error"
 
 main :: IO ()
 main =
@@ -28,5 +28,5 @@ main =
         Nothing -> return ()
         Just ":quit" -> return ()
         Just line -> do
-          HLine.outputStrLn $ process line
+          HLine.outputStrLn $ "=> " ++ process line
           loop
