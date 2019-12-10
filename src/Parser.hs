@@ -63,10 +63,11 @@ boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
         f "#f" = BoolVal False
         f _ = error "invalid boolean literal"
 
-symbolP = lexeme $ (SymbolVal . Symbol) <$> some letterP
+symbolP = lexeme $ Symbol <$> some letterP
+symvalP = SymbolVal <$> symbolP
 numberP = lexeme $ IntVal . read <$> (some $ oneOfP ['0'..'9'])
 
-atomP = nilP <|> boolP <|> symbolP <|> numberP <|> quotedP
+atomP = nilP <|> boolP <|> symvalP <|> numberP <|> quotedP
 
 consP :: SexpParser
 consP = lparenP *>
@@ -82,10 +83,25 @@ ifP = lparenP *> (lexeme $ stringP "if") *> ifParser <* rparenP
           (condition, input) <- runParser sexpP input
           (then', input) <- runParser sexpP input
           (else', input) <- runParser sexpP input
-          Just (If condition then' else', rest)
+          Just (If condition then' else', input)
+
+letP :: SexpParser
+letP =
+  lparenP *> (lexeme $ stringP "let") *> letParser <* rparenP
+  where letParser = Parser $ \input -> do
+          (_, input) <- runParser lparenP input
+          (bindings, input) <- runParser (some binding) input
+          (_, input) <- runParser rparenP input
+          (body, input) <- runParser sexpP input
+          Just (Let bindings body, input)
+        binding = lparenP *>
+          (Parser $ \input -> do
+              (sym, input) <- runParser symbolP input
+              (val, input) <- runParser sexpP input
+              Just ((sym, val), input)) <* rparenP
 
 sexpP :: SexpParser
-sexpP = ifP <|> atomP <|> consP
+sexpP = ifP <|> letP <|> atomP <|> consP
 
 parseSexp :: String -> Maybe Sexp
 parseSexp input = case (runParser sexpP input) of

@@ -3,6 +3,7 @@
 import System.Console.Haskeline as HLine
 
 import qualified Data.Map.Lazy as Map (empty)
+import Data.Maybe (isJust)
 
 import Ast
 import Parser
@@ -10,12 +11,12 @@ import Eval
 
 process :: String -> String
 process input =
-  case parseSexp input of
-    Just sexp ->
-      case eval sexp of
-        Just result -> show result
-        Nothing -> "runtime error"
-    Nothing -> "parse error"
+  let result = do
+        ast <- parseSexp input
+        eval ast in
+    case result of
+      Just sexp -> reprSexp sexp
+      Nothing -> "error occurred"
 
 main :: IO ()
 main =

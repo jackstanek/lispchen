@@ -26,29 +26,21 @@ argsMatch :: [Sexp] -> Int -> Bool
 argsMatch args len = len == length args
 
 evalFnCall :: Env -> Symbol -> [Sexp] -> Maybe Sexp
-evalFnCall env fn args =
-  case fn of
-    Symbol "if" ->
-      if argsMatch args 3 then
-        -- TODO: This seems unsafe.
-        let [cond, then', else'] = args in
-          do
-            cond' <- ev cond
-            if truthy cond' then
-              ev then' else ev else'
-      else Nothing
-
-    _ -> Nothing
-  where ev = evalSexp env
+evalFnCall env fn args = Nothing
 
 evalSexp :: Env -> Sexp -> Maybe Sexp
 evalSexp env sexp =
   case sexp of
     SymbolVal s -> Map.lookup s env
     Quoted s -> Just s
+    If cond then' else' -> do
+      cond' <- ev cond
+      if truthy cond'
+        then ev then'
+        else ev else'
     Cons (SymbolVal fn:args) -> evalFnCall env fn args
     _ -> Just sexp
-
+  where ev = evalSexp env
 
 eval :: Sexp -> Maybe Sexp
 eval = evalSexp baseEnv
