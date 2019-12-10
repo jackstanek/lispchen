@@ -22,8 +22,8 @@ instance Applicative Parser where
 
 instance Alternative Parser where
   empty = Parser $ \_ -> Nothing
-  (Parser lhs) <|> (Parser rhs) = Parser $ \input ->
-                                             lhs input <|> rhs input
+  (Parser lhs) <|> (Parser rhs) =
+    Parser $ \input -> lhs input <|> rhs input
 
 charP :: Char -> Parser Char
 charP chr =
@@ -53,6 +53,9 @@ lexeme p = whitespaceP *> p
 whitespaceP :: Parser String
 whitespaceP = many $ oneOfP " \n\t"
 
+lparenP = lexeme $ charP '('
+rparenP = lexeme $ charP ')'
+
 nilP = lexeme $ (\_ -> Nil) <$> (stringP "nil" <|> stringP "()")
 
 boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
@@ -61,21 +64,28 @@ boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
         f _ = error "invalid boolean literal"
 
 symbolP = lexeme $ (SymbolVal . Symbol) <$> some letterP
-
 numberP = lexeme $ IntVal . read <$> (some $ oneOfP ['0'..'9'])
 
 atomP = nilP <|> boolP <|> symbolP <|> numberP <|> quotedP
 
 consP :: SexpParser
-consP = (lexeme $ charP '(') *>
+consP = lparenP *>
         (Cons <$> (many sexpP)) <*
-        (lexeme $ charP ')')
+        rparenP
 
 quotedP :: SexpParser
-quotedP = (charP '\'') *> (Quoted <$> sexpP)
+quotedP = lexeme $ (charP '\'') *> (Quoted <$> sexpP)
+
+ifP :: SexpParser
+ifP = lparenP *> (lexeme $ stringP "if") *> ifParser <* rparenP
+  where ifParser = Parser $ \input -> do
+          (condition, input) <- runParser sexpP input
+          (then', input) <- runParser sexpP input
+          (else', input) <- runParser sexpP input
+          Just (If condition then' else', rest)
 
 sexpP :: SexpParser
-sexpP = atomP <|> consP
+sexpP = ifP <|> atomP <|> consP
 
 parseSexp :: String -> Maybe Sexp
 parseSexp input = case (runParser sexpP input) of

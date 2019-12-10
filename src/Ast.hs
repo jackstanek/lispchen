@@ -1,4 +1,5 @@
-module Ast (Sexp(IntVal, StringVal, SymbolVal, BoolVal, Nil, Quoted, Cons),
+module Ast (Sexp(IntVal, StringVal, SymbolVal, BoolVal, Nil, Quoted, Cons,
+                 If, Let, Lambda),
             Symbol(Symbol), symval,
             reprSexp, testSexp) where
 

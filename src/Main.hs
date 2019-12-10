@@ -13,7 +13,7 @@ process input =
   case parseSexp input of
     Just sexp ->
       case eval sexp of
-        Just result -> reprSexp result
+        Just result -> show result
         Nothing -> "runtime error"
     Nothing -> "parse error"
 
