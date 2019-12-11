@@ -11,12 +11,9 @@ import Eval
 
 process :: String -> String
 process input =
-  let result = do
-        ast <- parseSexp input
-        eval ast in
-    case result of
-      Just sexp -> reprSexp sexp
-      Nothing -> "error occurred"
+  case parseSexp input >>= eval of
+    Left e -> e
+    Right sexp -> reprSexp sexp
 
 main :: IO ()
 main =

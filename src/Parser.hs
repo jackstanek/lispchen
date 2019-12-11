@@ -6,31 +6,37 @@ import Control.Applicative
 
 import Ast
 
-newtype Parser a = Parser { runParser :: String -> Maybe (a, String) }
+newtype Parser a = Parser { runParser :: String -> Either String (a, String) }
 
 instance Functor Parser where
   fmap f (Parser p) = Parser $ \input -> do
     (result, rest) <- p input
-    Just (f result, rest)
+    Right (f result, rest)
 
 instance Applicative Parser where
-  pure c = Parser $ \input -> Just (c, input)
+  pure c = Parser $ \input -> Right (c, input)
   (Parser lhs) <*> (Parser rhs) = Parser $ \input -> do
     (f, lrest) <- lhs input
     (rresult, rrest) <- rhs lrest
-    Just (f rresult, rrest)
+    Right (f rresult, rrest)
 
 instance Alternative Parser where
-  empty = Parser $ \_ -> Nothing
+  empty = Parser $ \_ -> Left "empty parser"
   (Parser lhs) <|> (Parser rhs) =
-    Parser $ \input -> lhs input <|> rhs input
+    Parser $ \input ->
+               let l = lhs input in
+                 case l of
+                   Right _ -> l
+                   Left _ -> rhs input
 
 charP :: Char -> Parser Char
 charP chr =
   Parser $ \input ->
   case input of
-    "" -> Nothing
-    (x:xs) -> if x == chr then Just (chr, xs) else Nothing
+    (x:xs) -> if x == chr
+              then Right (chr, xs)
+              else Left $ "unexpected character " ++ show x
+    "" -> Left "reached end of input"
 
 letterP :: Parser Char
 letterP = oneOfP $ ['A'..'Z'] ++ ['a'..'z']
@@ -83,7 +89,7 @@ ifP = lparenP *> (lexeme $ stringP "if") *> ifParser <* rparenP
           (condition, input) <- runParser sexpP input
           (then', input) <- runParser sexpP input
           (else', input) <- runParser sexpP input
-          Just (If condition then' else', input)
+          Right (If condition then' else', input)
 
 letP :: SexpParser
 letP =
@@ -93,17 +99,20 @@ letP =
           (bindings, input) <- runParser (some binding) input
           (_, input) <- runParser rparenP input
           (body, input) <- runParser sexpP input
-          Just (Let bindings body, input)
+          (if length bindings < 1
+            then Left "not enough bindings in let expression"
+            else Right (Let bindings body, input))
         binding = lparenP *>
           (Parser $ \input -> do
               (sym, input) <- runParser symbolP input
               (val, input) <- runParser sexpP input
-              Just ((sym, val), input)) <* rparenP
+              Right ((sym, val), input)) <* rparenP
 
 sexpP :: SexpParser
 sexpP = ifP <|> letP <|> atomP <|> consP
 
-parseSexp :: String -> Maybe Sexp
+parseSexp :: String -> Either String Sexp
 parseSexp input = case (runParser sexpP input) of
-                    Just (sexp, "") -> Just sexp
-                    _ -> Nothing
+                    Right (sexp, "") -> Right sexp
+                    Right (_, rest) -> Left $ "stopped parsing: " ++ rest
+                    Left l -> Left l

@@ -25,22 +25,30 @@ truthy s = case s of
 argsMatch :: [Sexp] -> Int -> Bool
 argsMatch args len = len == length args
 
-evalFnCall :: Env -> Symbol -> [Sexp] -> Maybe Sexp
-evalFnCall env fn args = Nothing
+evalFnCall :: Env -> Symbol -> [Sexp] -> Either String Sexp
+evalFnCall env fn args = Left "can't evaluate function calls"
 
-evalSexp :: Env -> Sexp -> Maybe Sexp
+evalSexp :: Env -> Sexp -> Either String Sexp
 evalSexp env sexp =
   case sexp of
-    SymbolVal s -> Map.lookup s env
-    Quoted s -> Just s
+    SymbolVal s ->
+      let val = Map.lookup s env in
+        case val of
+          Just v -> Right v
+          Nothing -> Left $ "unbound " ++ show s
+    Quoted s -> Right s
     If cond then' else' -> do
       cond' <- ev cond
       if truthy cond'
         then ev then'
         else ev else'
-    Cons (SymbolVal fn:args) -> evalFnCall env fn args
-    _ -> Just sexp
+    Let bindings body ->
+      evalSexp (Map.union newVars env) body
+      where newVars = Map.fromList bindings
+    Cons (SymbolVal fn:args) ->
+      evalFnCall env fn args
+    _ -> Right sexp
   where ev = evalSexp env
 
-eval :: Sexp -> Maybe Sexp
+eval :: Sexp -> Either String Sexp
 eval = evalSexp baseEnv
