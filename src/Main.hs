@@ -12,7 +12,7 @@ import Eval
 process :: String -> String
 process input =
   case parseSexp input >>= eval of
-    Left e -> e
+    Left e -> "error: " ++ e
     Right sexp -> reprSexp sexp
 
 main :: IO ()

@@ -25,8 +25,15 @@ truthy s = case s of
 argsMatch :: [Sexp] -> Int -> Bool
 argsMatch args len = len == length args
 
-evalFnCall :: Env -> Symbol -> [Sexp] -> Either String Sexp
-evalFnCall env fn args = Left "can't evaluate function calls"
+evalFnCall :: Env -> Sexp -> [Sexp] -> Either String Sexp
+evalFnCall env (Lambda arglist body) args =
+  evalSexp fnScope body
+  where fnScope = Map.union (Map.fromList $ zip arglist args) env
+evalFnCall env (SymbolVal (Symbol name)) args =
+  case Map.lookup (Symbol name) env of
+    Just s -> evalFnCall env s args
+    Nothing -> Left $ "unbound function " ++ name
+evalFnCall env s args = Left $ "called uncallable object " ++ reprSexp s
 
 evalSexp :: Env -> Sexp -> Either String Sexp
 evalSexp env sexp =
@@ -45,8 +52,9 @@ evalSexp env sexp =
     Let bindings body ->
       evalSexp (Map.union newVars env) body
       where newVars = Map.fromList bindings
-    Cons (SymbolVal fn:args) ->
+    Cons (fn:args) ->
       evalFnCall env fn args
+
     _ -> Right sexp
   where ev = evalSexp env
 
