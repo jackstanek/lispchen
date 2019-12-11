@@ -95,8 +95,10 @@ consP = lparenP *>
 quotedP :: SexpParser
 quotedP = lexeme $ (charP '\'') *> (Quoted <$> sexpP)
 
+keywordP = lexeme . stringP
+
 ifP :: SexpParser
-ifP = lparenP *> (lexeme $ stringP "if") *> ifParser <* rparenP
+ifP = lparenP *> (keywordP "if") *> ifParser <* rparenP
   where ifParser = Parser $ \input -> do
           (condition, input) <- runParser sexpP input
           (then', input) <- runParser sexpP input
@@ -105,7 +107,7 @@ ifP = lparenP *> (lexeme $ stringP "if") *> ifParser <* rparenP
 
 letP :: SexpParser
 letP =
-  lparenP *> (lexeme $ stringP "let") *> letParser <* rparenP
+  lparenP *> (keywordP "let") *> letParser <* rparenP
   where letParser = Parser $ \input -> do
           (_, input) <- runParser lparenP input
           (bindings, input) <- runParser (some binding) input
@@ -120,8 +122,18 @@ letP =
               (val, input) <- runParser sexpP input
               Right ((sym, val), input)) <* rparenP
 
+lambdaP :: SexpParser
+lambdaP =
+  lparenP *> (keywordP "lambda") *> lambdaParser <* rparenP
+  where lambdaParser = Parser $ \input -> do
+          (_, input) <- runParser lparenP input
+          (args, input) <- runParser (many $ symbolP) input
+          (_, input) <- runParser rparenP input
+          (body, input) <- runParser sexpP input
+          Right (Lambda args body, input)
+
 sexpP :: SexpParser
-sexpP = ifP <|> letP <|> atomP <|> consP
+sexpP = ifP <|> letP <|> lambdaP <|> atomP <|> consP
 
 parseSexp :: String -> Either String Sexp
 parseSexp input = case (runParser sexpP input) of
