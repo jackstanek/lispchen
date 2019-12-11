@@ -3,6 +3,7 @@
 module Parser (parseSexp) where
 
 import Control.Applicative
+import Data.Maybe (maybeToList)
 
 import Ast
 
@@ -22,16 +23,14 @@ instance Applicative Parser where
 
 instance Alternative Parser where
   empty = Parser $ \_ -> Left "empty parser"
-  (Parser lhs) <|> (Parser rhs) =
-    Parser $ \input ->
-               let l = lhs input in
-                 case l of
-                   Right _ -> l
-                   Left _ -> rhs input
+  (Parser lhs) <|> (Parser rhs) = Parser $ \input ->
+    let l = lhs input in
+      case l of
+        Right _ -> l
+        Left _ -> rhs input
 
 charP :: Char -> Parser Char
-charP chr =
-  Parser $ \input ->
+charP chr = Parser $ \input ->
   case input of
     (x:xs) -> if x == chr
               then Right (chr, xs)
@@ -46,9 +45,16 @@ stringP = sequenceA . map charP
 
 -- combinators
 
-oneOfP :: String -> Parser Char
+oneOfP :: [Char] -> Parser Char
 oneOfP "" = empty
 oneOfP (x:xs) = (charP x) <|> (oneOfP xs)
+
+optionP :: Parser a -> Parser (Maybe a)
+optionP (Parser p) = Parser $ \input ->
+  let result = p input in
+    Right $ case result of
+              Left _ -> (Nothing, input)
+              Right (v, r) -> (Just v, r)
 
 -- concrete parser
 type SexpParser = Parser Sexp
@@ -71,7 +77,13 @@ boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
 
 symbolP = lexeme $ Symbol <$> some letterP
 symvalP = SymbolVal <$> symbolP
-numberP = lexeme $ IntVal . read <$> (some $ oneOfP ['0'..'9'])
+numberP = lexeme $ IntVal . read <$> n
+  where digits  = some $ oneOfP ['0'..'9']
+        neg     = maybeToList <$> (optionP $ charP '-')
+        n       = Parser $ \input -> do
+          (sign, input) <- runParser neg input
+          (digits, input) <- runParser digits input
+          Right (sign ++ digits, input)
 
 atomP = nilP <|> boolP <|> symvalP <|> numberP <|> quotedP
 
