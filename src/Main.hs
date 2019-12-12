@@ -3,7 +3,6 @@
 import System.Console.Haskeline as HLine
 
 import qualified Data.Map.Lazy as Map (empty)
-import Data.Maybe (isJust)
 
 import Ast
 import Parser
@@ -13,7 +12,7 @@ process :: String -> String
 process input =
   case parseSexp input >>= eval of
     Left e -> "error: " ++ e
-    Right sexp -> reprSexp sexp
+    Right sexp -> "=> " ++ reprSexp sexp
 
 main :: IO ()
 main =
@@ -26,5 +25,5 @@ main =
         Nothing -> return ()
         Just ":quit" -> return ()
         Just line -> do
-          HLine.outputStrLn $ "=> " ++ process line
+          HLine.outputStrLn $ process line
           loop
