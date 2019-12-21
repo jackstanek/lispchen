@@ -1,6 +1,7 @@
 -- Copyright 2019, Jack Stanek. All rights reserved.
 
 import System.Console.Haskeline as HLine
+import System.Environment (getArgs)
 
 import qualified Data.Map.Lazy as Map (empty)
 
@@ -14,8 +15,8 @@ process input =
     Left e -> "error: " ++ e
     Right sexp -> "=> " ++ reprSexp sexp
 
-main :: IO ()
-main =
+runRepl :: IO ()
+runRepl =
   HLine.runInputT HLine.defaultSettings loop
   where
     loop :: HLine.InputT IO ()
@@ -27,3 +28,9 @@ main =
         Just line -> do
           HLine.outputStrLn $ process line
           loop
+
+main :: IO ()
+main = getArgs >>= \args ->
+  case args of
+    [] -> runRepl
+    _ -> putStrLn "too many arguments"
