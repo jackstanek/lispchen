@@ -22,17 +22,18 @@ truthy s = case s of
   Nil -> False
   _ -> True
 
-argsMatch :: [Sexp] -> Int -> Bool
-argsMatch args len = len == length args
-
 evalFnCall :: Env -> Sexp -> [Sexp] -> Either String Sexp
 evalFnCall env (Lambda arglist body) args =
-  evalSexp fnScope body
+  if length arglist /= length args then
+    Left "wrong number of arguments passed"
+  else
+    evalSexp fnScope body
   where fnScope = Map.union (Map.fromList $ zip arglist args) env
 evalFnCall env (SymbolVal (Symbol name)) args =
   case Map.lookup (Symbol name) env of
     Just s -> evalFnCall env s args
     Nothing -> Left $ "unbound function " ++ name
+
 evalFnCall env s args = Left $ "called uncallable object " ++ reprSexp s
 
 evalSexp :: Env -> Sexp -> Either String Sexp
