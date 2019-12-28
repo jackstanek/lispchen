@@ -137,6 +137,5 @@ sexpP = ifP <|> letP <|> lambdaP <|> atomP <|> consP
 
 parseSexp :: String -> Either String Sexp
 parseSexp input = case (runParser sexpP input) of
-                    Right (sexp, "") -> Right sexp
-                    Right (_, rest) -> Left $ "stopped parsing: " ++ rest
+                    Right (sexp, _) -> Right sexp
                     Left l -> Left l
