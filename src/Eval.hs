@@ -29,6 +29,11 @@ evalFnCall env (Lambda arglist body) args =
   else
     evalSexp fnScope body
   where fnScope = Map.union (Map.fromList $ zip arglist args) env
+
+evalFnCall env (Let bindings body) args =
+  resolvedFn >>= \f -> evalFnCall env f args
+  where resolvedFn = evalSexp env (Let bindings body)
+
 evalFnCall env (SymbolVal (Symbol name)) args =
   case Map.lookup (Symbol name) env of
     Just s -> evalFnCall env s args
