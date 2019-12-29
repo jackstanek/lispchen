@@ -5,8 +5,6 @@ module Eval (eval) where
 
 import qualified Data.Map.Lazy as Map
 
-import Data.Maybe
-
 import Ast
 
 type Env = Map.Map Symbol Sexp
@@ -45,16 +43,14 @@ evalSexp :: Env -> Sexp -> Either String Sexp
 evalSexp env sexp =
   case sexp of
     SymbolVal s ->
-      let val = Map.lookup s env in
-        case val of
-          Just v -> Right v
-          Nothing -> Left $ "unbound " ++ show s
+      case Map.lookup s env of
+        Just v -> Right v
+        Nothing -> Left $ "unbound " ++ show s
     Quoted s -> Right s
-    If cond then' else' -> do
-      cond' <- ev cond
-      if truthy cond'
-        then ev then'
-        else ev else'
+    If cond then' else' ->
+      ev cond >>= branch . truthy
+        where branch True = ev then'
+              branch False = ev else'
     Let bindings body ->
       evalSexp (Map.union newVars env) body
       where newVars = Map.fromList bindings
