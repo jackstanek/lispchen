@@ -5,7 +5,7 @@ module Parser (parseSexp) where
 import Control.Applicative
 import Data.Maybe (maybeToList)
 
-import Ast
+import ConcreteSyntax
 
 newtype Parser a = Parser { runParser :: String -> Either String (a, String) }
 
@@ -49,6 +49,15 @@ oneOfP :: [Char] -> Parser Char
 oneOfP "" = empty
 oneOfP (x:xs) = (charP x) <|> (oneOfP xs)
 
+exceptP :: [Char] -> Parser Char
+exceptP s = Parser $ \input ->
+  case input of
+    "" -> Left "reached end of input"
+    (x:xs) ->
+      if not $ elem x s then
+        Right (x, xs)
+      else Left $ "unexpected character " ++ show x
+
 optionP :: Parser a -> Parser (Maybe a)
 optionP (Parser p) = Parser $ \input ->
   let result = p input in
@@ -61,22 +70,16 @@ type SexpParser = Parser Sexp
 
 lexeme :: Parser a -> Parser a
 lexeme p = whitespaceP *> p
-
-whitespaceP :: Parser String
-whitespaceP = many $ oneOfP " \n\t"
+  where whitespaceP = many $ oneOfP " \n\t"
 
 lparenP = lexeme $ charP '('
 rparenP = lexeme $ charP ')'
 
 nilP = lexeme $ (\_ -> Nil) <$> (stringP "nil" <|> stringP "()")
 
-boolP = lexeme $ f <$> (stringP "#t" <|> stringP "#f")
-  where f "#t" = BoolVal True
-        f "#f" = BoolVal False
-        f _ = error "invalid boolean literal"
-
-symbolP = lexeme $ Symbol <$> some letterP
 symvalP = SymbolVal <$> symbolP
+  where symbolP = lexeme $ Symbol <$> some letterP
+
 numberP = lexeme $ IntVal . read <$> n
   where digits  = some $ oneOfP ['0'..'9']
         neg     = maybeToList <$> (optionP $ charP '-')
@@ -85,57 +88,26 @@ numberP = lexeme $ IntVal . read <$> n
           (digits, input) <- runParser digits input
           Right (sign ++ digits, input)
 
-atomP = nilP <|> boolP <|> symvalP <|> numberP <|> quotedP
+stringLitP = StringVal <$> (doublequoteP *> strContentP <* doublequoteP)
+  where dq = '"'
+        doublequoteP = charP dq
+        strContentP = many $ exceptP [dq]
+
+quotedP :: SexpParser
+quotedP = lexeme $ (charP '\'') *> (Quoted <$> sexpP)
+
+atomP = nilP <|> symvalP <|> numberP <|> stringLitP <|> quotedP
 
 consP :: SexpParser
 consP = lparenP *>
         (Cons <$> (many sexpP)) <*
         rparenP
 
-quotedP :: SexpParser
-quotedP = lexeme $ (charP '\'') *> (Quoted <$> sexpP)
-
-keywordP = lexeme . stringP
-
-ifP :: SexpParser
-ifP = lparenP *> (keywordP "if") *> ifParser <* rparenP
-  where ifParser = Parser $ \input -> do
-          (condition, input) <- runParser sexpP input
-          (then', input) <- runParser sexpP input
-          (else', input) <- runParser sexpP input
-          Right (If condition then' else', input)
-
-letP :: SexpParser
-letP =
-  lparenP *> (keywordP "let") *> letParser <* rparenP
-  where letParser = Parser $ \input -> do
-          (_, input) <- runParser lparenP input
-          (bindings, input) <- runParser (some binding) input
-          (_, input) <- runParser rparenP input
-          (body, input) <- runParser sexpP input
-          (if length bindings < 1
-            then Left "not enough bindings in let expression"
-            else Right (Let bindings body, input))
-        binding = lparenP *>
-          (Parser $ \input -> do
-              (sym, input) <- runParser symbolP input
-              (val, input) <- runParser sexpP input
-              Right ((sym, val), input)) <* rparenP
-
-lambdaP :: SexpParser
-lambdaP =
-  lparenP *> (keywordP "lambda") *> lambdaParser <* rparenP
-  where lambdaParser = Parser $ \input -> do
-          (_, input) <- runParser lparenP input
-          (args, input) <- runParser (many $ symbolP) input
-          (_, input) <- runParser rparenP input
-          (body, input) <- runParser sexpP input
-          Right (Lambda args body, input)
-
 sexpP :: SexpParser
-sexpP = ifP <|> letP <|> lambdaP <|> atomP <|> consP
+sexpP = atomP <|> consP
 
 parseSexp :: String -> Either String Sexp
-parseSexp input = case (runParser sexpP input) of
-                    Right (sexp, _) -> Right sexp
-                    Left l -> Left l
+parseSexp s = runParser sexpP s >>= \(result, remaining) ->
+    if null remaining then
+      Right result
+    else Left "error parsing; excess characters"

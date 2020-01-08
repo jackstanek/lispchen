@@ -6,15 +6,14 @@ import System.IO
 
 import qualified Data.Map.Lazy as Map (empty)
 
-import Ast
 import Parser
 import Eval
 
 process :: String -> String
 process input =
-  case parseSexp input >>= eval of
+  case parseSexp input of
     Left e -> "error: " ++ e
-    Right sexp -> reprSexp sexp
+    Right sexp -> show sexp
 
 runRepl :: IO ()
 runRepl =
