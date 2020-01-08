@@ -75,12 +75,12 @@ lexeme p = whitespaceP *> p
 lparenP = lexeme $ charP '('
 rparenP = lexeme $ charP ')'
 
-nilP = lexeme $ (\_ -> Nil) <$> (stringP "nil" <|> stringP "()")
+nilP = (\_ -> Nil) <$> (lexeme $ stringP "nil" <|> stringP "()")
 
 symvalP = SymbolVal <$> symbolP
   where symbolP = lexeme $ Symbol <$> some letterP
 
-numberP = lexeme $ IntVal . read <$> n
+numberP = IntVal . read <$> lexeme n
   where digits  = some $ oneOfP ['0'..'9']
         neg     = maybeToList <$> (optionP $ charP '-')
         n       = Parser $ \input -> do
@@ -88,7 +88,7 @@ numberP = lexeme $ IntVal . read <$> n
           (digits, input) <- runParser digits input
           Right (sign ++ digits, input)
 
-stringLitP = StringVal <$> (doublequoteP *> strContentP <* doublequoteP)
+stringLitP = StringVal <$> (lexeme $ doublequoteP *> strContentP <* doublequoteP)
   where dq = '"'
         doublequoteP = charP dq
         strContentP = many $ exceptP [dq]
