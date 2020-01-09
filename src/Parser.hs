@@ -72,9 +72,6 @@ lexeme :: Parser a -> Parser a
 lexeme p = whitespaceP *> p
   where whitespaceP = many $ oneOfP " \n\t"
 
-lparenP = lexeme $ charP '('
-rparenP = lexeme $ charP ')'
-
 nilP = (\_ -> Nil) <$> (lexeme $ stringP "nil" <|> stringP "()")
 
 symvalP = SymbolVal <$> symbolP
@@ -94,14 +91,14 @@ stringLitP = StringVal <$> (lexeme $ doublequoteP *> strContentP <* doublequoteP
         strContentP = many $ exceptP [dq]
 
 quotedP :: SexpParser
-quotedP = lexeme $ (charP '\'') *> (Quoted <$> sexpP)
+quotedP = Quoted <$> (lexeme $ charP '\'' *> sexpP)
 
 atomP = nilP <|> symvalP <|> numberP <|> stringLitP <|> quotedP
 
 consP :: SexpParser
-consP = lparenP *>
-        (Cons <$> (many sexpP)) <*
-        rparenP
+consP = Cons <$> (lparenP *> (many sexpP) <* rparenP)
+  where lparenP = lexeme $ charP '('
+        rparenP = lexeme $ charP ')'
 
 sexpP :: SexpParser
 sexpP = atomP <|> consP
