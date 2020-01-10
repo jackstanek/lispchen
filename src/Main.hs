@@ -11,7 +11,7 @@ import Eval
 
 process :: String -> String
 process input =
-  case parseSexp input of
+  case parseSexp input >>= buildAST of
     Left e -> "error: " ++ e
     Right sexp -> show sexp
 
