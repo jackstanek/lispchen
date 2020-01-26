@@ -13,7 +13,6 @@ data EvalTree = Val Sexp
               | If EvalTree EvalTree EvalTree
               | Let [(Symbol, EvalTree)] EvalTree
               | FnCall EvalTree [EvalTree]
-              | Closure Env EvalTree
   deriving Show
 
 baseEnv :: Env
